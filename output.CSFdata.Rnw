@@ -1,0 +1,98 @@
+\documentclass{article}
+
+
+\title{ADNI: Output CSF data using master data}
+\author{ADNI: Biostat Core Team}
+
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+\maketitle
+
+\section{About UPENN Master data}
+
+The ADNI Biomarker Core combined peviously reported all 8 CSF datasets (UPENNBIOMARK\_MASTER.csv). \\
+The master data with its data dictionary and method paper are available to download from LONI. \\
+
+\subsection{Which batch data to use?}
+
+The Biomarker Core recommendations (per the method paper):
+
+\begin{center}
+  \begin{tabular}{ l | p{5cm}| p{5cm} }
+    \hline
+      & ADNI1: RID < 2000 & ADNIGO2: RID > 2000 \\ \hline
+    Baseline-only & UPENNBIOMK (first batch) & UPENNBIOMKs5-8, taking the first occurring BL data for each subject \\ \hline
+    Longitudinal changes & UPENNBIOMK6 with UPENNBIOMK4 if not included in the 6th & Only BL \& m24 are available at this time \\   \hline
+  \end{tabular}
+\end{center}
+
+
+
+<<Rsetup, echo=FALSE>>=
+# set working directory
+cur_wd=getwd()
+setwd("C:/Users/nhsaito/Documents/Naomi/ADNI/2016-07")
+@
+
+
+\section{R code to output CSF data}
+<<echo=T>>=
+# read in csv file
+CSF_master <- read.csv("20160713/UPENNBIOMK_MASTER.csv")
+@
+
+\subsection{Baseline only CSF data}
+
+  Baseline Only \\
+    ADNI1 -- Use UPENNBIOMK \\
+    ADNIGO2 -- Use fist available BL from UPENN5-UPENN8
+
+
+<<echo=T>>=
+
+# create baseline only data
+CSF_data0 <- subset(CSF_master, VISCODE == "bl" & BATCH != "MEDIAN")
+# for ADNI1 use only first batch
+attach(CSF_data0)
+CSF_data0 <- CSF_data0[(RID < 2000 & BATCH == "UPENNBIOMK") | RID > 2000 , ]
+CSF_data0 <- CSF_data0[order(RID, BATCH),  ]
+detach(CSF_data0)
+# delete duplicated rows ([1]: RID)
+CSF_data0 <- CSF_data0[!duplicated(CSF_data0[1]),]
+
+
+vars <- c("RID", "DRWDTE", "ABETA", "TAU", "PTAU")
+CSF_data0 <- CSF_data0[vars]
+names(CSF_data0) <- c("RID", "DRWDTE0", "ABETA0", "TAU0", "PTAU0")
+@
+\subsection{Longitudinal CSF data}
+Longitudinal data \\
+    ADNI1 -- Use UPENNBIOMK6 and UPENNBIOMK4 if not included in the 6.  \\
+    ADNIGO2 -- Only BL and M24 are available\\
+
+
+<<echo=T>>=
+
+# create longitudinal data
+CSF_data <- subset(CSF_master, RID < 2000 & BATCH %in% c("UPENNBIOMK6", "UPENNBIOMK4"))
+
+
+CSF_data <- CSF_data[order(CSF_data$RID, CSF_data$VISCODE, -xtfrm(CSF_data$BATCH)),  ]
+# delete duplicated rows ([1]:RID, [2]:VISCODE)
+CSF_data <- CSF_data[!duplicated(CSF_data[1:2]) ,]
+
+@
+Note: If you are merging with other data, you may want to change the variable name \"{ }VISCODE\"{ } to \"{ }VISCODE2\"{ }.
+
+\subsection{Output to csv file}
+
+<<echo=T>>=
+# output CSF baseline and longitudinal data in csv file
+write.csv(CSF_data0, "CSF_data0.csv", row.names=FALSE, na="")
+write.csv(CSF_data, "CSF_data.csv", row.names=FALSE, na="")
+@
+
+
+\end{document}
