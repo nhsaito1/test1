@@ -1,53 +1,91 @@
-\documentclass{article}
+\documentclass[11pt]{article}
+\usepackage{amsmath}
 
 
 \title{ADNI: Output CSF data using master data}
 \author{ADNI: Biostat Core Team}
+\addtolength{\textwidth}{1.5in}
+\addtolength{\oddsidemargin}{-1in}
+\setlength{\evensidemargin}{\oddsidemargin}
+\newcommand{\code}[1]{\texttt{#1}}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=darkblue,
+    filecolor=magenta,      
+    urlcolor=blue,
+}
+\usepackage{listings}
+\usepackage{array}
+\urlstyle{same}
 
+<<echo=FALSE>>=
+
+options(width = 60)
+ # listing <- function(x, options) {
+#    paste("\\begin{lstlisting}[basicstyle=\\ttfamily,breaklines=true]\n",
+#      x, "\\end{lstlisting}\n", sep = "")
+ # }
+#  knit_hooks$set(source=listing, output=listing)
+opts_chunk$set(comment=NA, tidy=TRUE, highlight=TRUE, echo=FALSE,fig.with=6.5, fig.height=5.3, fig.path="figures/",out.width="\\textwidth", out.height="!", device="pdf",cache=TRUE, warning=FALSE, error=FALSE)
+knit_hooks$set(small.mar = function(before, options, envir) {
+    if (before) par(mar=c(4.1, 4.1, .1, .1))
+})
+options(show.signif.stars = FALSE)  #display intellegence
+options(na.action=na.exclude)  #retain missing in predict() calls
+@
 
 \begin{document}
-\SweaveOpts{concordance=TRUE}
+%\SweaveOpts{concordance=TRUE}
 
 \maketitle
 
 \section{About UPENN Master data}
 
-The ADNI Biomarker Core combined peviously reported all 8 CSF datasets (UPENNBIOMARK\_MASTER.csv). \\
-The master data with its data dictionary and method paper are available to download from LONI. \\
+The ADNI Biomarker Core has combined  all 8 previously reported CSF datasets \\(\textbf{UPENNBIOMARK\_MASTER.csv}). The master data with its data dictionary and method paper are available to download from LONI; \url{http://adni.loni.usc.edu/ data-samples/access-data} \textbf{Download Study Data - Biospecimen - Biospecimen Results  - UPENN CSF Biomarker Master [ADNI1, GO, 2].} \\
+
+
 
 \subsection{Which batch data to use?}
 
 The Biomarker Core recommendations (per the method paper):
 
 \begin{center}
-  \begin{tabular}{ l | p{5cm}| p{5cm} }
+\begin{table}[h]
+\centering
+  \begin{tabular}{ l | m{5cm}| m{5cm}}
     \hline
-      & ADNI1: RID < 2000 & ADNIGO2: RID > 2000 \\ \hline
-    Baseline-only & UPENNBIOMK (first batch) & UPENNBIOMKs5-8, taking the first occurring BL data for each subject \\ \hline
-    Longitudinal changes & UPENNBIOMK6 with UPENNBIOMK4 if not included in the 6th & Only BL \& m24 are available at this time \\   \hline
+      & ADNI1: RID $< 2000$ & ADNIGO2: RID $> 2000$ \\ \hline
+    Baseline-only & UPENNBIOMK (first batch) & UPENNBIOMKs 5-8, taking the first occurring BL data for each subject \\ \hline
+    Longitudinal changes & UPENNBIOMK6, if not included, use UPENNBIOMK4 & Only BL \& m24 are available at this time \\   \hline
   \end{tabular}
+  \end{table}
 \end{center}
 
 
 
 <<Rsetup, echo=FALSE>>=
 # set working directory
+setwd("~/Documents/Davis2015-2016/Naomi")
 cur_wd=getwd()
-setwd("C:/Users/nhsaito/Documents/Naomi/ADNI/2016-07")
+
+
 @
 
 
 \section{R code to output CSF data}
 <<echo=T>>=
 # read in csv file
-CSF_master <- read.csv("20160713/UPENNBIOMK_MASTER.csv")
+# Download CSF file from LONI, see above
+
+CSF_master <- read.csv("UPENNBIOMK_MASTER.csv")
 @
 
 \subsection{Baseline only CSF data}
 
   Baseline Only \\
-    ADNI1 -- Use UPENNBIOMK \\
-    ADNIGO2 -- Use fist available BL from UPENN5-UPENN8
+    \textbf{ADNI1}-- Use UPENNBIOMK \\
+    \textbf{ADNIGO2} -- Use first available BL from UPENN5-UPENN8
 
 
 <<echo=T>>=
@@ -60,7 +98,7 @@ CSF_data0 <- CSF_data0[(RID < 2000 & BATCH == "UPENNBIOMK") | RID > 2000 , ]
 CSF_data0 <- CSF_data0[order(RID, BATCH),  ]
 detach(CSF_data0)
 # delete duplicated rows ([1]: RID)
-CSF_data0 <- CSF_data0[!duplicated(CSF_data0[1]),]
+CSF_data0 <- CSF_data0[!duplicated(CSF_data0$RID),]
 
 
 vars <- c("RID", "DRWDTE", "ABETA", "TAU", "PTAU")
@@ -69,8 +107,8 @@ names(CSF_data0) <- c("RID", "DRWDTE0", "ABETA0", "TAU0", "PTAU0")
 @
 \subsection{Longitudinal CSF data}
 Longitudinal data \\
-    ADNI1 -- Use UPENNBIOMK6 and UPENNBIOMK4 if not included in the 6.  \\
-    ADNIGO2 -- Only BL and M24 are available\\
+    \textbf{ADNI1} -- Use UPENNBIOMK6 and UPENNBIOMK4 if not included in the 6.  \\
+    \textbf{ADNIGO2} -- Only BL and M24 are available\\
 
 
 <<echo=T>>=
